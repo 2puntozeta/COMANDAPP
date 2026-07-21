@@ -1,11 +1,19 @@
-const cfg=window.KDS_CONFIG||{},cloud=!!(cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY),sb=cloud?supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY):null,bc="BroadcastChannel"in window?new BroadcastChannel("dpz-kds-v27"):null;
+const cfg=window.KDS_CONFIG||{},cloud=!!(cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY),sb=cloud?supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY):null,bc="BroadcastChannel"in window?new BroadcastChannel("dpz-kds-v28"):null;
 const MENU=[
 ["Acqua Calabria 0,75 L","bar","Bevande"],["Coca-Cola","bar","Bevande"],["Coca-Cola Zero","bar","Bevande"],["Fanta","bar","Bevande"],["Sprite","bar","Bevande"],["Vino sfuso 1/2 L bianco","bar","Vino"],["Vino sfuso 1/2 L rosato","bar","Vino"],["Vino sfuso 1 L bianco","bar","Vino"],["Vino sfuso 1 L rosato","bar","Vino"],["Peroni Nastro Azzurro","bar","Birre"],["Beck's","bar","Birre"],["Ceres Strong Ale 7.7","bar","Birre"],["Leffe Rouge","bar","Birre"],["De Alchemia Schizophrenic","bar","Birre"],["Birra alla Spina Falkenturm","bar","Birre"],["Nastro Azzurro Zero","bar","Birre"],["Peroni Senza Glutine","bar","Birre"],["Kaciuto","bar","Amari"],["Vecchio Amaro del Capo","bar","Amari"],["Montenegro","bar","Amari"],["Jägermeister","bar","Amari"],["Amaro Silano","bar","Amari"],["Jefferson Amaro Importante","bar","Amari"],["Caffè","bar","Caffetteria"],["Sorbetto al Limone","bar","Dessert"],["Dessert del giorno","bar","Dessert"],["Antipasto di Mare","cucina","Antipasti"],["Antipasto Calabrese","cucina","Antipasti"],["Insalata di Mare","cucina","Antipasti"],["Polpo alla Griglia","cucina","Antipasti"],["Pepata di Cozze","cucina","Antipasti"],["Alici Fritte","cucina","Antipasti"],["Zuppetta di Mare","cucina","Antipasti"],["Ostriche e Fasolari","cucina","Antipasti"],["Patatine","cucina","Rosticceria"],["Patatine Wurstel","cucina","Rosticceria"],["Crocchè di Patate","cucina","Rosticceria"],["Polpette di Carne","cucina","Rosticceria"],["Mix Rosticceria","cucina","Rosticceria"],["Pasta al Sugo","cucina","Primi Baby"],["Pasta in Bianco","cucina","Primi Baby"],["Pacchero con Ricciola Scottata e Pomodorini Rossi","cucina","Primi"],["Tagliolini alle Vongole","cucina","Primi"],["Ravioli di Cernia con Bisque di Crostacei","cucina","Primi"],["Fusilloni al Ragù di Polpo","cucina","Primi"],["Tagliolini al Limone con Gambero Rosso","cucina","Primi"],["Frittura di Paranza","cucina","Secondi"],["Frittura di Calamari","cucina","Secondi"],["Frittura Completa Mista","cucina","Secondi"],["Tagliata di Tonno","cucina","Secondi"],["Grigliata di Pesce","cucina","Secondi"],["Pesce Spada alla Griglia","cucina","Secondi"],["Insalata","cucina","Contorni"],["Margherita","pizzeria","Pizze - Richieste"],["Diavola","pizzeria","Pizze - Richieste"],["Pugliese","pizzeria","Pizze - Richieste"],["Bufala","pizzeria","Pizze - Richieste"],["Polipetta 2.0","pizzeria","Pizze - Specialità"],["Taylor","pizzeria","Pizze - Specialità"],["Bebo","pizzeria","Pizze - Specialità"],["Malibù","pizzeria","Pizze - Specialità"],["Diciassette","pizzeria","Pizze - Specialità"],["Contadina","pizzeria","Pizze Bianche"],["Quattroformaggi","pizzeria","Pizze Bianche"],["Focaccia","pizzeria","Focacce"],["Babylon","pizzeria","Pizze Fredde"],["Marinara","pizzeria","Pizze Classiche"],["Napoli","pizzeria","Pizze Classiche"],["Calabrese","pizzeria","Pizze Classiche"],["Capricciosa","pizzeria","Pizze Classiche"],["Viennese","pizzeria","Pizze Classiche"],["Regina","pizzeria","Pizze Classiche"],["Quattro Stagioni","pizzeria","Pizze Classiche"],["Calzone Classico","pizzeria","Calzoni"],["Calzone Zeta","pizzeria","Calzoni"]].map((x,i)=>({id:i+1,name:x[0],dept:x[1],cat:x[2]}));
 let tableCount=Math.max(1,Number(localStorage.getItem("dpz_kds_table_count")||((cfg.TABLES&&cfg.TABLES.length)||30))),TABLES=[];const refreshTables=()=>{TABLES=Array.from({length:tableCount},(_,i)=>String(i+1))};refreshTables();const QUICK_ADD=["Patatine","Wurstel","Cipolla","'Nduja","Burrata","Prosciutto crudo","Mozzarella","Funghi","Olive","Tonno"],QUICK_REMOVE=["Mozzarella","Pomodoro","Cipolla","Olive","Funghi","Basilico","Prezzemolo","Formaggio"];
 let orders=[],cart=[],activeCat="Tutti",selectedTable=null,selectedCourse=0,courseCount=3,editingLine=null,selectedAdds=[],selectedRemoves=[],pendingTable=null,editingCoversOnly=false;
 const $=s=>document.querySelector(s),uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random(),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),courseLabel=n=>n===0?"ADESSO":`ORDINE ${n}`;
 function toast(t){const x=$("#toast");x.textContent=t;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),1800)}
-function normalize(o){o.paymentStatus=o.paymentStatus||"open";o.covers=Math.max(0,Number(o.covers||0));o.items=(o.items||[]).map(i=>({...i,lineId:i.lineId||uid(),course:Number.isInteger(i.course)?i.course:(i.stage==="later"?1:i.stage==="follow"?2:0),status:i.status||"queued",adds:i.adds||[],removes:i.removes||[],note:i.note||""}));o.history=o.history||[];return o}
+function normalize(o){
+  o.paymentStatus=o.paymentStatus||"open";
+  o.covers=Math.max(0,Number(o.covers||0));
+  o.items=(o.items||[]).map(i=>({...i,lineId:i.lineId||uid(),course:Number.isInteger(i.course)?i.course:(i.stage==="later"?1:i.stage==="follow"?2:0),status:i.status||"queued",adds:i.adds||[],removes:i.removes||[],note:i.note||""}));
+  o.history=o.history||[];
+  const pendingCourses=o.items.filter(i=>i.status!=="sent").map(i=>i.course);
+  if(!Number.isInteger(o.activeCourse)||!pendingCourses.includes(o.activeCourse))o.activeCourse=pendingCourses.length?Math.min(...pendingCourses):null;
+  return o
+}
 function save(){localStorage.setItem("dpz_kds_orders",JSON.stringify(orders));bc?.postMessage({type:"orders",orders})}function load(){orders=JSON.parse(localStorage.getItem("dpz_kds_orders")||"[]").map(normalize)}
 bc?.addEventListener("message",e=>{if(e.data?.type==="orders"){orders=e.data.orders.map(normalize);renderAll()}});
 async function cloudLoad(){const{data,error}=await sb.from("kds_orders").select("*").order("created_at");if(error)return toast("Errore sincronizzazione");orders=(data||[]).map(r=>normalize(r.payload));renderAll()}
@@ -28,9 +36,40 @@ function renderModifierChips(){$("#addChips").innerHTML=QUICK_ADD.map(x=>`<butto
 function saveModal(){const a=$("#modalAdds").value.split(",").map(x=>x.trim()).filter(Boolean),r=$("#modalRemoves").value.split(",").map(x=>x.trim()).filter(Boolean);editingLine.qty=Math.max(1,+$("#modalQty").value||1);editingLine.course=+$("#modalCourse").value;editingLine.adds=[...new Set([...selectedAdds,...a])];editingLine.removes=[...new Set([...selectedRemoves,...r])];editingLine.note=$("#modalNote").value.trim();if(!cart.some(x=>x.lineId===editingLine.lineId))cart.push(editingLine);selectedCourse=editingLine.course;closeModal("#itemModal");renderCourseRail();renderCart()}
 function itemDetails(i){return`${i.adds.map(v=>`<div class="mod plus">+ ${esc(v)}</div>`).join("")}${i.removes.map(v=>`<div class="mod minus">− ${esc(v)}</div>`).join("")}${i.note?`<div class="mod note">📝 ${esc(i.note)}</div>`:""}`}
 function renderCart(){const rows=cart.filter(i=>i.course===selectedCourse);$("#cartEmpty").style.display=rows.length?"none":"block";$("#cartList").innerHTML=rows.map(i=>`<div class="line ${i.dept}" data-edit="${i.lineId}"><div><strong>${esc(i.name)}</strong>${itemDetails(i)}</div><div class="qty"><button data-dec="${i.lineId}">−</button><b>${i.qty}</b><button data-inc="${i.lineId}">+</button></div><button class="remove" data-del="${i.lineId}">×</button></div>`).join("");document.querySelectorAll("[data-edit]").forEach(x=>x.onclick=e=>{if(!e.target.closest("button"))editProduct(x.dataset.edit)});["inc","dec","del"].forEach(a=>document.querySelectorAll(`[data-${a}]`).forEach(b=>b.onclick=()=>{const i=cart.find(x=>x.lineId===b.dataset[a]);if(a==="inc")i.qty++;if(a==="dec")i.qty--;if(a==="del"||i.qty<=0)cart=cart.filter(x=>x!==i);renderCourseRail();renderCart()}))}
-async function send(){if(!selectedTable||!cart.length)return toast("Seleziona tavolo e prodotti");let o=openOrder(selectedTable);const now=new Date().toISOString(),batchId=uid(),newItems=cart.map(i=>({...i,status:"queued",batchId,addedAt:now}));if(o){o.items.push(...newItems);o.history.push({action:"added_items",count:newItems.length,at:now})}else{o=normalize({id:uid(),table:selectedTable,covers:1,createdAt:now,paymentStatus:"open",items:newItems,history:[]});orders.push(o)}await persist(o);cart=[];renderAll();toast("Comanda inviata")}
-function currentCourseForDept(o,d){const pending=o.items.filter(i=>i.dept===d&&i.status!=="sent");return pending.length?Math.min(...pending.map(i=>i.course)):null}
-function deptItems(o,d){const c=currentCourseForDept(o,d);return c===null?[]:o.items.filter(i=>i.dept===d&&i.course===c&&i.status!=="sent")}
+async function send(){
+  if(!selectedTable||!cart.length)return toast("Seleziona tavolo e prodotti");
+  let o=openOrder(selectedTable);
+  const now=new Date().toISOString(),batchId=uid(),newItems=cart.map(i=>({...i,status:"queued",batchId,addedAt:now}));
+  if(o){
+    o.items.push(...newItems);
+    const firstNew=Math.min(...newItems.map(i=>i.course));
+    if(o.activeCourse===null||firstNew<o.activeCourse)o.activeCourse=firstNew;
+    o.history.push({action:"added_items",count:newItems.length,at:now})
+  }else{
+    o=normalize({id:uid(),table:selectedTable,covers:1,createdAt:now,paymentStatus:"open",items:newItems,activeCourse:Math.min(...newItems.map(i=>i.course)),history:[]});
+    orders.push(o)
+  }
+  await persist(o);cart=[];renderAll();toast("Comanda inviata")
+}
+function currentCourse(o){
+  const pending=o.items.filter(i=>i.status!=="sent");
+  if(!pending.length){o.activeCourse=null;return null}
+  const courses=[...new Set(pending.map(i=>i.course))].sort((a,b)=>a-b);
+  if(!Number.isInteger(o.activeCourse)||!courses.includes(o.activeCourse))o.activeCourse=courses[0];
+  return o.activeCourse
+}
+function deptItems(o,d){
+  const c=currentCourse(o);
+  return c===null?[]:o.items.filter(i=>i.dept===d&&i.course===c&&i.status!=="sent")
+}
+function advanceCourseIfComplete(o,completedCourse,at){
+  if(completedCourse===null||completedCourse===undefined)return;
+  const stillOpen=o.items.some(i=>i.course===completedCourse&&i.status!=="sent");
+  if(stillOpen)return;
+  const next=[...new Set(o.items.filter(i=>i.status!=="sent").map(i=>i.course))].sort((a,b)=>a-b)[0];
+  o.activeCourse=Number.isInteger(next)?next:null;
+  o.history.push({action:"course_advanced",fromCourse:completedCourse,toCourse:o.activeCourse,at});
+}
 const mins=t=>Math.max(0,Math.floor((Date.now()-new Date(t))/60000));
 const clock=t=>t?new Date(t).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):"—";
 const duration=(a,b)=>{if(!a||!b)return "—";const m=Math.max(0,Math.round((new Date(b)-new Date(a))/60000));return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`};
@@ -38,7 +77,17 @@ function sentEvents(o){return (o.history||[]).filter(h=>h.action==="sent").sort(
 function courseTimeline(o){const events=sentEvents(o),courses=[...new Set(o.items.map(i=>i.course))].sort((a,b)=>a-b);return courses.map(c=>{const ev=events.filter(h=>Number(h.course)===c);const at=ev.length?ev[ev.length-1].at:null;const depts=[...new Set(ev.map(h=>h.dept))];return{course:c,at,depts}})}
 
 function renderBoards(){for(const d of["cucina","pizzeria","bar"]){const rows=orders.filter(o=>o.paymentStatus==="open").map(o=>({o,it:deptItems(o,d)})).filter(x=>x.it.length);$("#count-"+d).textContent=rows.length+" tavoli";$("#board-"+d).innerHTML=rows.length?rows.map(({o,it})=>{const c=it[0].course,ready=it.every(i=>i.status==="ready"),started=it.some(i=>i.status==="started"),m=mins(Math.min(...it.map(i=>new Date(i.addedAt||o.createdAt).getTime())));return`<article class="ticket ${ready?"ready":started?"waiting":""} ${m>=18?"late":""}"><h3>TAVOLO ${esc(o.table)} <small class="covers-inline">${o.covers||0} COPERTI</small></h3><div class="course-badge">${courseLabel(c)}</div><div class="meta"><span>${d.toUpperCase()}</span><span>${m} min</span></div><div class="items">${it.map(i=>`<div class="kds-item"><b>${i.qty}×</b> ${esc(i.name)}${itemDetails(i)}</div>`).join("")}</div><div class="actions"><button class="start" data-a="start" data-o="${o.id}" data-d="${d}">INIZIA</button><button class="readybtn" data-a="ready" data-o="${o.id}" data-d="${d}">PRONTO</button><button class="sentbtn" data-a="sent" data-o="${o.id}" data-d="${d}">MANDATO</button></div></article>`}).join(""):`<div class="empty">Nessuna comanda</div>`}document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>act(b.dataset.o,b.dataset.d,b.dataset.a))}
-async function act(id,d,a){const o=orders.find(x=>x.id===id),it=deptItems(o,d),course=it[0]?.course;it.forEach(i=>i.status=a==="sent"?"sent":a==="ready"?"ready":"started");o.history.push({dept:d,course,action:a,at:new Date().toISOString()});await persist(o);renderAll()}
+async function act(id,d,a){
+  const o=orders.find(x=>x.id===id);
+  if(!o)return;
+  const it=deptItems(o,d),course=it[0]?.course;
+  if(!it.length)return;
+  const at=new Date().toISOString();
+  it.forEach(i=>i.status=a==="sent"?"sent":a==="ready"?"ready":"started");
+  o.history.push({dept:d,course,action:a,at});
+  if(a==="sent")advanceCourseIfComplete(o,course,at);
+  await persist(o);renderAll()
+}
 function orderGroups(o){const max=Math.max(0,...o.items.map(i=>i.course));return Array.from({length:max+1},(_,c)=>({c,items:o.items.filter(i=>i.course===c)})).filter(g=>g.items.length)}
 function fullOrderHtml(o){return orderGroups(o).map(g=>`<section class="full-group"><h3>${courseLabel(g.c)}</h3>${g.items.map(i=>`<div class="full-line"><div><b>${i.qty}× ${esc(i.name)}</b>${itemDetails(i)}</div><small>${i.dept.toUpperCase()} · ${i.status==="sent"?"Mandato":i.status==="ready"?"Pronto":i.status==="started"?"In preparazione":"In attesa"}</small></div>`).join("")}</section>`).join("")}
 function openFull(table){const o=openOrder(table);if(!o)return toast("Tavolo senza conto aperto");$("#fullTitle").textContent=`TAVOLO ${table} — ${o.covers||0} COPERTI — ORDINE COMPLETO`;$("#fullBody").innerHTML=fullOrderHtml(o);$("#fullModal").classList.add("open")}
@@ -49,4 +98,4 @@ async function reopenPaid(id){const o=orders.find(x=>x.id===id);if(!o)return;con
 async function deletePaid(id){const o=orders.find(x=>x.id===id);if(!o||o.paymentStatus!=="paid")return;const when=o.paidAt?new Date(o.paidAt).toLocaleString("it-IT"):"";if(!confirm(`ELIMINARE DEFINITIVAMENTE il tavolo ${o.table}${when?` pagato il ${when}`:""}?\n\nQuesta operazione non può essere annullata.`))return;if(cloud){const{error}=await sb.from("kds_orders").delete().eq("id",id);if(error)return toast("Errore durante l’eliminazione")}orders=orders.filter(x=>x.id!==id);if(!cloud)save();else bc?.postMessage({type:"orders",orders});renderAll();toast("Ordine eliminato definitivamente")}
 function renderAll(){renderTables();renderBoards();renderAccounts();renderHistory();if(selectedTable){$("#tableLabel").textContent=selectedTable;$("#coversLabel").textContent=openOrder(selectedTable)?.covers||0;renderCourseRail();renderCart()}}
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>showView(b.dataset.view));$("#openSettings").onclick=()=>{$("#tableCountInput").value=tableCount;$("#settingsModal").classList.add("open")};$("#saveSettings").onclick=()=>{const n=Math.max(1,Math.min(300,Number($("#tableCountInput").value||0)));tableCount=n;localStorage.setItem("dpz_kds_table_count",String(n));refreshTables();$("#settingsModal").classList.remove("open");renderTables();toast(`Griglia aggiornata: ${n} tavoli`)};$("#closeSettings").onclick=()=>closeModal("#settingsModal");$("#closeTableSetup").onclick=()=>closeModal("#tableSetupModal");$("#confirmTableSetup").onclick=confirmTableSetup;$("#editCovers").onclick=editCovers;$("#search").oninput=menu;$("#addCourse").onclick=()=>{courseCount++;selectedCourse=courseCount-1;renderCourseRail();renderCart()};$("#sendOrder").onclick=send;$("#backTables").onclick=()=>showView("tavoli");$("#showFullOrder").onclick=()=>selectedTable?openFull(selectedTable):toast("Seleziona un tavolo");$("#closeModal").onclick=()=>closeModal("#itemModal");$("#closeFull").onclick=()=>closeModal("#fullModal");$("#saveItem").onclick=saveModal;document.querySelectorAll(".modal").forEach(m=>m.onclick=e=>{if(e.target===m)m.classList.remove("open")});$("#historyDate").onchange=renderHistory;$("#clearHistoryDate").onclick=()=>{$("#historyDate").value="";renderHistory()};
-if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});if(cloud){$("#conn").textContent="ONLINE";$("#conn").className="pill online";cloudLoad();sb.channel("kds-live-v27").on("postgres_changes",{event:"*",schema:"public",table:"kds_orders"},cloudLoad).subscribe()}else{load();renderAll()}menu();renderCourseRail();renderCart();setInterval(renderAll,30000);
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});if(cloud){$("#conn").textContent="ONLINE";$("#conn").className="pill online";cloudLoad();sb.channel("kds-live-v28").on("postgres_changes",{event:"*",schema:"public",table:"kds_orders"},cloudLoad).subscribe()}else{load();renderAll()}menu();renderCourseRail();renderCart();setInterval(renderAll,30000);
