@@ -109,3 +109,23 @@ html[data-board-columns="3"] .board{grid-template-columns:repeat(3,minmax(0,1fr)
 .modifier-grid button b{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
 .modifier-grid button b small{font-size:.78em;font-weight:500;opacity:.78}
 .mod.plus small{font-weight:700;opacity:.85}
+
+/* V4.2 - prezzi ufficiali, modificatori per reparto e telefono */
+.mobile-cart-toggle,.mobile-cart-close{display:none}
+.sumup-modifier-grid button b small:empty{display:none}
+@media(max-width:760px){
+  header{position:relative;padding:8px} header>div{width:100%} header h1{font-size:16px} nav{width:100%;padding-bottom:2px} nav button{padding:9px 10px;font-size:12px}
+  main{padding:8px}.view#ordine.active{overflow:hidden}
+  .pos-shell{display:flex;flex-direction:column;min-height:calc(100dvh - 118px);height:calc(100dvh - 118px)}
+  .pos-categories{order:1;width:100%;display:flex;flex-direction:row;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid #dbe2ea;padding:5px;gap:6px;flex:0 0 78px}
+  .pos-home,.pos-category{min-width:72px;width:72px;min-height:64px;height:64px;flex:0 0 72px}.pos-home{font-size:20px}.cat-icon{width:31px;height:31px}.pos-category>span:last-child{font-size:9px;max-width:68px}
+  .pos-products{order:2;flex:1;min-height:0;padding:7px}.pos-topline{display:flex;gap:6px;margin-bottom:6px}.product-toolbar{min-width:0}.product-toolbar input{padding:9px;font-size:14px}.product-toolbar .secondary{display:none}.selected-table{display:none}
+  .mobile-cart-toggle{display:block;white-space:nowrap;background:#3468e8;color:#fff;padding:9px 10px;border-radius:8px;font-size:12px}.mobile-cart-toggle span{background:#fff;color:#3468e8;border-radius:999px;padding:2px 6px;margin-left:3px}
+  .menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-height:none;overflow:auto}.product{height:88px!important;min-height:88px!important}.product span{font-size:13px!important}.product b{font-size:12px!important}
+  .product-pager{flex:0 0 24px}
+  .pos-order{display:none;position:fixed;z-index:90;inset:8px;background:#fff;border-radius:14px;box-shadow:0 12px 40px #0007;max-height:none;border:0;overflow:hidden}
+  body.mobile-order-open .pos-order{display:flex}.mobile-cart-close{display:block;background:transparent;font-size:28px;padding:0 6px}.round-icon{display:none}
+  .order-title{padding:10px}.pos-cart{max-height:none;flex:1}.pos-bottom-actions button{padding:17px 5px}
+  .sumup-item-modal{height:100dvh;max-height:100dvh;border-radius:0!important}.sumup-modal-body{padding-bottom:78px}.modal-course-row{gap:8px}.modifier-mode{width:100%}.modifier-mode button{flex:1}.sumup-modifier-grid{grid-template-columns:1fr}.sumup-modifier-grid button{min-height:58px}.comment-box textarea{min-height:100px}
+}
+@media(max-width:390px){.menu-grid{grid-template-columns:1fr 1fr}.product{height:78px!important;min-height:78px!important}.pos-categories{flex-basis:72px}.pos-home,.pos-category{height:58px;min-height:58px}}
