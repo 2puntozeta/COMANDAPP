@@ -24,3 +24,41 @@
 .sound-warning{margin-top:14px;padding:12px;border-radius:10px;background:#fff7ed;color:#9a3412;font-weight:700;line-height:1.35}
 @keyframes soundPulse{50%{transform:scale(1.08);box-shadow:0 0 0 8px rgba(245,158,11,.28)}}
 @media(max-width:700px){.sound-button{padding:8px 9px;font-size:.78rem}.sound-actions{grid-template-columns:1fr}}
+
+/* V3.1 - audio personalizzato, telefoni e zoom controllato */
+html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;overscroll-behavior-y:none}
+button,.product,.table-card,.course-button,.nav button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
+.display-button{margin-left:8px;background:#e5e7eb;color:#111827;border:0;border-radius:12px;padding:10px 13px;font-weight:900}
+.new-order-badge{margin-left:8px;background:#dc2626;color:#fff;border-radius:999px;padding:8px 12px;font-weight:950;animation:newOrderPulse .8s ease-in-out infinite alternate}
+.file-status{margin-top:-4px;padding:9px 10px;background:#f3f4f6;border-radius:9px;color:#4b5563;font-size:13px;font-weight:700;overflow-wrap:anywhere}
+@keyframes newOrderPulse{to{transform:scale(1.05);box-shadow:0 0 0 6px rgba(220,38,38,.18)}}
+@media(max-width:700px){
+  body{font-size:15px}
+  header{padding:8px;gap:7px}
+  header>div{display:flex;align-items:center;flex-wrap:wrap;gap:5px;width:100%}
+  header h1{font-size:18px;margin-right:auto}
+  .display-button,.sound-button{margin-left:0;padding:8px 9px;font-size:11px}
+  .new-order-badge{margin-left:0;font-size:10px;padding:7px 9px}
+  nav{display:flex;gap:5px;overflow-x:auto;width:100%;padding-bottom:3px;scrollbar-width:none}
+  nav::-webkit-scrollbar{display:none}
+  nav button{flex:0 0 auto;font-size:12px;padding:9px 11px}
+  main{padding:8px}
+  .screen-title{gap:8px}
+  .screen-title h2{font-size:21px}
+  .board{grid-template-columns:1fr;gap:8px}
+  .ticket{padding:11px;border-radius:13px}
+  .ticket h3{font-size:21px}
+  .items{font-size:18px;line-height:1.4}
+  .actions button{min-height:48px;font-size:15px}
+  .sumup-layout{display:block;min-height:0}
+  .category-panel,.product-panel,.order-panel{border-radius:12px;margin-bottom:8px;padding:8px}
+  .category-list{position:sticky;top:0;z-index:3;overflow-x:auto;display:flex;flex-direction:row;max-height:none;padding-bottom:4px}
+  .category-list button{min-width:max-content;min-height:45px}
+  .menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-height:none;overflow:visible}
+  .product{min-height:88px;padding:10px}.product span{font-size:15px}
+  .order-panel #cartList{max-height:none}
+  .course-tabs .course-button{min-width:100px}
+  .modal{padding:8px;align-items:flex-end}
+  .modal-card{max-height:92dvh;border-radius:18px 18px 0 0;padding:18px 14px calc(18px + env(safe-area-inset-bottom))}
+}
+@media(max-width:390px){.menu-grid{grid-template-columns:1fr 1fr;gap:6px}.product{min-height:80px}.product span{font-size:14px}.actions{grid-template-columns:1fr}.sentbtn{grid-column:auto}}
