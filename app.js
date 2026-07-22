@@ -19,19 +19,53 @@ const $=s=>document.querySelector(s),uid=()=>crypto.randomUUID?crypto.randomUUID
 function toast(t){const x=$("#toast");x.textContent=t;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),1800)}
 const SOUND_KEY="dpz_kds_sound_v2",DISPLAY_KEY="dpz_kds_display_v1";
 let soundPrefs=(()=>{try{return{enabled:false,dept:"cucina",soundType:"industrial",ackOnTap:false,...JSON.parse(localStorage.getItem(SOUND_KEY)||"{}")}}catch{return{enabled:false,dept:"cucina",soundType:"industrial",ackOnTap:false}}})();
-let displayPrefs=(()=>{try{return{scale:1,...JSON.parse(localStorage.getItem(DISPLAY_KEY)||"{}")}}catch{return{scale:1}}})();
-let audioCtx=null,soundSnapshot=null,soundPlaying=false,pendingVisualAlert=false,customAudioUrl=null;
+let displayPrefs=(()=>{try{return{scale:1,textScale:1,buttonScale:1,boardColumns:"auto",...JSON.parse(localStorage.getItem(DISPLAY_KEY)||"{}")}}catch{return{scale:1,textScale:1,buttonScale:1,boardColumns:"auto"}}})();
+let audioCtx=null,soundSnapshot=null,soundPlaying=false,pendingVisualAlert=false,customAudioUrl=null,alertRepeatTimer=null,currentCustomAudio=null;
 function ensureAudio(){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;if(!audioCtx)audioCtx=new AC();if(audioCtx.state==="suspended")audioCtx.resume();return audioCtx}
-function tone(ctx,start,freq,duration,gain=0.9,type="square"){const osc=ctx.createOscillator(),g=ctx.createGain(),comp=ctx.createDynamicsCompressor();osc.type=type;osc.frequency.setValueAtTime(freq,start);g.gain.setValueAtTime(.0001,start);g.gain.exponentialRampToValueAtTime(gain,start+.015);g.gain.exponentialRampToValueAtTime(.0001,start+duration);osc.connect(g);g.connect(comp);comp.connect(ctx.destination);osc.start(start);osc.stop(start+duration+.03)}
+function tone(ctx,at,freq,dur,vol=.9,type="sine",endFreq=null){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,at);if(endFreq)o.frequency.exponentialRampToValueAtTime(endFreq,at+dur);g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(Math.max(.001,vol),at+.015);g.gain.exponentialRampToValueAtTime(.0001,at+dur);o.connect(g).connect(ctx.destination);o.start(at);o.stop(at+dur+.03)}
 function openSoundDb(){return new Promise((resolve,reject)=>{const req=indexedDB.open("dpz-kds-audio",1);req.onupgradeneeded=()=>req.result.createObjectStore("sounds");req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
 async function saveCustomSound(file){const db=await openSoundDb();await new Promise((resolve,reject)=>{const tx=db.transaction("sounds","readwrite");tx.objectStore("sounds").put(file,"custom");tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});localStorage.setItem("dpz_custom_sound_name",file.name);await loadCustomSound()}
 async function loadCustomSound(){try{const db=await openSoundDb();const blob=await new Promise((resolve,reject)=>{const req=db.transaction("sounds").objectStore("sounds").get("custom");req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error)});if(customAudioUrl)URL.revokeObjectURL(customAudioUrl);customAudioUrl=blob?URL.createObjectURL(blob):null;return !!blob}catch{return false}}
 function showNewOrderBadge(){pendingVisualAlert=true;const b=$("#newOrderBadge");if(b)b.hidden=false}
+function stopAlert({clearBadge=true}={}){if(alertRepeatTimer){clearInterval(alertRepeatTimer);alertRepeatTimer=null}if(currentCustomAudio){try{currentCustomAudio.pause();currentCustomAudio.currentTime=0}catch{}currentCustomAudio=null}soundPlaying=false;if(clearBadge)clearNewOrderBadge();const btn=$("#soundButton");btn?.classList.remove("alerting")}
 function clearNewOrderBadge(){pendingVisualAlert=false;const b=$("#newOrderBadge");if(b)b.hidden=true}
-async function playStrongAlert(){if(soundPlaying)return;soundPlaying=true;showNewOrderBadge();const type=soundPrefs.soundType||"industrial";if(type==="custom"){if(!customAudioUrl)await loadCustomSound();if(customAudioUrl){const a=new Audio(customAudioUrl);a.volume=1;a.play().catch(()=>toast("Tocca ATTIVA SUONI per autorizzare l’audio"));a.onended=()=>{soundPlaying=false};setTimeout(()=>{soundPlaying=false},10000)}else{soundPlaying=false;toast("Carica prima un audio personalizzato")}}else{const ctx=ensureAudio();if(!ctx){soundPlaying=false;return toast("Audio non supportato su questo dispositivo")};const t=ctx.currentTime+.04;if(type==="bell"){for(let r=0;r<2;r++){const b=t+r*.85;tone(ctx,b,1180,.32,.95,"sine");tone(ctx,b+.12,1560,.48,.8,"sine")}}else if(type==="alarm"){for(let r=0;r<4;r++){const b=t+r*.38;tone(ctx,b,920,.17,.95,"sawtooth");tone(ctx,b+.18,620,.17,.95,"sawtooth")}}else{for(let r=0;r<3;r++){const b=t+r*.72;tone(ctx,b,520,.18,.98,"square");tone(ctx,b+.2,740,.18,.98,"square");tone(ctx,b+.4,520,.22,.98,"square")}}setTimeout(()=>{soundPlaying=false},3200)}const btn=$("#soundButton");btn?.classList.add("alerting");setTimeout(()=>btn?.classList.remove("alerting"),1900)}
+async function playAlertCycle(typeOverride=null,{preview=false}={}){if(soundPlaying&&!preview)return;soundPlaying=true;const type=typeOverride||soundPrefs.soundType||"industrial";
+ if(type==="custom"){
+  if(!customAudioUrl)await loadCustomSound();
+  if(customAudioUrl){if(currentCustomAudio){try{currentCustomAudio.pause()}catch{}}const a=new Audio(customAudioUrl);currentCustomAudio=a;a.volume=1;try{await a.play()}catch{toast("Tocca SALVA E ATTIVA per autorizzare l’audio")}a.onended=()=>{soundPlaying=false;currentCustomAudio=null};setTimeout(()=>{if(currentCustomAudio===a){soundPlaying=false;currentCustomAudio=null}},12000)}else{soundPlaying=false;toast("Carica prima un audio personalizzato")}
+ }else{
+  const ctx=ensureAudio();if(!ctx){soundPlaying=false;return toast("Audio non supportato su questo dispositivo")}
+  const t=ctx.currentTime+.04;
+  if(type==="bell"){
+   // Campanello metallico: due colpi alti, lunghi e squillanti.
+   for(let r=0;r<2;r++){const b=t+r*.92;tone(ctx,b,1320,.72,.95,"sine");tone(ctx,b+.015,1980,.58,.55,"sine");tone(ctx,b+.03,2640,.42,.3,"sine")}
+   setTimeout(()=>{soundPlaying=false},2400);
+  }else if(type==="alarm"){
+   // Sirena alternata: tono che sale e scende, nettamente diverso dagli altri.
+   for(let r=0;r<3;r++){const b=t+r*.62;tone(ctx,b,650,.28,.95,"sawtooth",1350);tone(ctx,b+.3,1350,.28,.95,"sawtooth",650)}
+   setTimeout(()=>{soundPlaying=false},2300);
+  }else{
+   // Buzzer industriale: tre colpi bassi e secchi.
+   for(let r=0;r<3;r++){const b=t+r*.56;tone(ctx,b,235,.32,.98,"square");tone(ctx,b+.04,310,.24,.55,"square")}
+   setTimeout(()=>{soundPlaying=false},2100);
+  }
+ }
+ const btn=$("#soundButton");btn?.classList.add("alerting");setTimeout(()=>btn?.classList.remove("alerting"),2200)
+}
+async function playStrongAlert(){stopAlert({clearBadge:false});showNewOrderBadge();await playAlertCycle();if(soundPrefs.ackOnTap){alertRepeatTimer=setInterval(()=>{if(pendingVisualAlert&&!soundPlaying)playAlertCycle()},4200)}}
 function audibleLineIds(){const depts=soundPrefs.dept==="all"?["cucina","pizzeria","bar"]:[soundPrefs.dept];const ids=[];for(const o of orders.filter(x=>x.paymentStatus==="open")){for(const d of depts){for(const i of deptItems(o,d))ids.push(`${o.id}:${i.lineId}:${d}`)}}return new Set(ids)}
 function checkSoundAlerts({initial=false}={}){const next=audibleLineIds();if(soundSnapshot===null||initial){soundSnapshot=next;return}const hasNew=[...next].some(id=>!soundSnapshot.has(id));soundSnapshot=next;if(hasNew&&soundPrefs.enabled)playStrongAlert()}
-function applyDisplayScale(){const scale=Math.min(1.3,Math.max(.85,Number(displayPrefs.scale)||1));document.documentElement.style.setProperty("--ui-scale",scale);document.body.style.zoom=String(scale);document.documentElement.dataset.uiScale=String(scale)}
+function applyDisplayScale(){
+  const scale=Math.min(1.3,Math.max(.8,Number(displayPrefs.scale)||1));
+  const textScale=Math.min(1.3,Math.max(.9,Number(displayPrefs.textScale)||1));
+  const buttonScale=Math.min(1.18,Math.max(.9,Number(displayPrefs.buttonScale)||1));
+  const cols=["1","2","3"].includes(String(displayPrefs.boardColumns))?String(displayPrefs.boardColumns):"auto";
+  document.documentElement.style.setProperty("--ui-scale",String(scale));
+  document.documentElement.style.setProperty("--text-scale",String(textScale));
+  document.documentElement.style.setProperty("--button-scale",String(buttonScale));
+  document.documentElement.dataset.boardColumns=cols;
+  document.body.style.zoom=String(scale);
+}
 function refreshSoundButton(){const b=$("#soundButton");if(!b)return;b.textContent=soundPrefs.enabled?`🔔 SUONI: ${soundPrefs.dept==="all"?"TUTTI":soundPrefs.dept.toUpperCase()}`:"🔕 ATTIVA SUONI";b.classList.toggle("enabled",soundPrefs.enabled)}
 function normalize(o){
   o.paymentStatus=o.paymentStatus||"open";
@@ -142,10 +176,31 @@ async function deleteMenuProduct(id){const p=MENU.find(x=>String(x.id)===String(
 
 function renderAll(){renderTables();renderBoards();renderAccounts();renderHistory();if(selectedTable){$("#tableLabel").textContent=selectedTable;$("#coversLabel").textContent=openOrder(selectedTable)?.covers||0;renderCourseRail();renderCart()}}
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>showView(b.dataset.view));$("#openSettings").onclick=()=>{$("#tableCountInput").value=tableCount;$("#settingsModal").classList.add("open")};$("#saveSettings").onclick=()=>{const n=Math.max(1,Math.min(300,Number($("#tableCountInput").value||0)));tableCount=n;localStorage.setItem("dpz_kds_table_count",String(n));refreshTables();$("#settingsModal").classList.remove("open");renderTables();toast(`Griglia aggiornata: ${n} tavoli`)};$("#closeSettings").onclick=()=>closeModal("#settingsModal");$("#openMenuManager").onclick=()=>{managerCat="Tutti";resetMenuEditor();renderMenuManager();$("#menuManagerModal").classList.add("open")};$("#closeMenuManager").onclick=()=>closeModal("#menuManagerModal");$("#resetMenuEditor").onclick=resetMenuEditor;$("#saveMenuProduct").onclick=saveMenuProduct;$("#managerSearch").oninput=renderMenuManager;$("#closeTableSetup").onclick=()=>closeModal("#tableSetupModal");$("#confirmTableSetup").onclick=confirmTableSetup;$("#editCovers").onclick=editCovers;$("#search").oninput=menu;$("#clearSearch").onclick=()=>{$("#search").value="";menu()};$("#addCourse").onclick=()=>{courseCount++;selectedCourse=courseCount-1;renderCourseRail();renderCart()};$("#sendOrder").onclick=send;$("#backTables").onclick=()=>showView("tavoli");$("#showFullOrder").onclick=()=>selectedTable?openFull(selectedTable):toast("Seleziona un tavolo");$("#closeModal").onclick=()=>closeModal("#itemModal");$("#closeFull").onclick=()=>closeModal("#fullModal");$("#saveItem").onclick=saveModal;$("#modalQtyMinus").onclick=()=>$("#modalQty").value=Math.max(1,Number($("#modalQty").value||1)-1);$("#modalQtyPlus").onclick=()=>$("#modalQty").value=Math.max(1,Number($("#modalQty").value||1)+1);document.querySelectorAll(".modal").forEach(m=>m.onclick=e=>{if(e.target===m)m.classList.remove("open")});$("#historyDate").onchange=renderHistory;$("#clearHistoryDate").onclick=()=>{$("#historyDate").value="";renderHistory()};
-$("#soundButton").onclick=()=>{$("#soundDept").value=soundPrefs.dept;$("#soundEnabled").checked=soundPrefs.enabled;$("#soundModal").classList.add("open")};
+$("#soundButton").onclick=()=>{$("#soundDept").value=soundPrefs.dept;$("#soundType").value=soundPrefs.soundType||"industrial";$("#soundEnabled").checked=soundPrefs.enabled;$("#ackOnTap").checked=!!soundPrefs.ackOnTap;$("#customSoundName").textContent=localStorage.getItem("dpz_custom_sound_name")||"Nessun audio personalizzato caricato";$("#soundModal").classList.add("open")};
+$("#displayButton").onclick=()=>{
+  $("#uiScale").value=String(displayPrefs.scale||1);
+  $("#textScale").value=String(displayPrefs.textScale||1);
+  $("#buttonScale").value=String(displayPrefs.buttonScale||1);
+  $("#boardColumns").value=String(displayPrefs.boardColumns||"auto");
+  $("#displayModal").classList.add("open");
+};
+$("#closeDisplay").onclick=()=>closeModal("#displayModal");
+$("#saveDisplay").onclick=()=>{
+  displayPrefs={scale:Number($("#uiScale").value),textScale:Number($("#textScale").value),buttonScale:Number($("#buttonScale").value),boardColumns:$("#boardColumns").value};
+  localStorage.setItem(DISPLAY_KEY,JSON.stringify(displayPrefs));
+  applyDisplayScale();closeModal("#displayModal");toast("Impostazioni display salvate");
+};
+$("#resetDisplay").onclick=()=>{
+  const phone=window.matchMedia("(max-width: 760px)").matches;
+  displayPrefs={scale:1,textScale:phone?1.15:1,buttonScale:phone?1.18:1,boardColumns:phone?"1":"auto"};
+  localStorage.setItem(DISPLAY_KEY,JSON.stringify(displayPrefs));
+  applyDisplayScale();closeModal("#displayModal");toast("Display automatico ripristinato");
+};
 $("#closeSound").onclick=()=>closeModal("#soundModal");
-$("#testSound").onclick=()=>playStrongAlert();
-$("#saveSound").onclick=()=>{soundPrefs={enabled:$("#soundEnabled").checked,dept:$("#soundDept").value};localStorage.setItem(SOUND_KEY,JSON.stringify(soundPrefs));ensureAudio();soundSnapshot=audibleLineIds();refreshSoundButton();closeModal("#soundModal");if(soundPrefs.enabled){playStrongAlert();toast("Avvisi sonori attivati") }else toast("Avvisi sonori disattivati")};
+$("#customSoundFile").onchange=async e=>{const file=e.target.files?.[0];if(!file)return;await saveCustomSound(file);$("#customSoundName").textContent=file.name;$("#soundType").value="custom";toast("Audio personalizzato salvato")};
+$("#testSound").onclick=()=>{stopAlert();playAlertCycle($("#soundType").value,{preview:true})};
+$("#saveSound").onclick=()=>{soundPrefs={enabled:$("#soundEnabled").checked,dept:$("#soundDept").value,soundType:$("#soundType").value,ackOnTap:$("#ackOnTap").checked};localStorage.setItem(SOUND_KEY,JSON.stringify(soundPrefs));ensureAudio();soundSnapshot=audibleLineIds();refreshSoundButton();closeModal("#soundModal");stopAlert();if(soundPrefs.enabled){playAlertCycle(soundPrefs.soundType,{preview:true});toast(soundPrefs.ackOnTap?"Suoni attivi: si ripetono finché tocchi lo schermo":"Avvisi sonori attivati") }else toast("Avvisi sonori disattivati")};
+document.addEventListener("pointerdown",()=>{if(soundPrefs.ackOnTap&&pendingVisualAlert)stopAlert()},{capture:true});
 refreshSoundButton();
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});if(cloud){$("#conn").textContent="ONLINE";$("#conn").className="pill online";cloudLoad();sb.channel("kds-live-v30").on("postgres_changes",{event:"*",schema:"public",table:"kds_orders"},cloudLoad).subscribe()}else{load();renderAll();checkSoundAlerts({initial:true})}menu();renderCourseRail();renderCart();setInterval(renderAll,30000);
 

@@ -62,3 +62,25 @@ button,.product,.table-card,.course-button,.nav button{touch-action:manipulation
   .modal-card{max-height:92dvh;border-radius:18px 18px 0 0;padding:18px 14px calc(18px + env(safe-area-inset-bottom))}
 }
 @media(max-width:390px){.menu-grid{grid-template-columns:1fr 1fr;gap:6px}.product{min-height:80px}.product span{font-size:14px}.actions{grid-template-columns:1fr}.sentbtn{grid-column:auto}}
+
+/* V3.3 - display funzionante e ottimizzazione telefono */
+:root{--ui-scale:1;--text-scale:1;--button-scale:1}
+body{-webkit-text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none}
+button,input,select,textarea{font-size:calc(1em * var(--text-scale))}
+button{padding:calc(12px * var(--button-scale)) calc(16px * var(--button-scale));min-height:calc(42px * var(--button-scale));touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
+.ticket,.account,.table-card,.product{font-size:calc(1rem * var(--text-scale))}
+html[data-board-columns="1"] .board{grid-template-columns:1fr!important}
+html[data-board-columns="2"] .board{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+html[data-board-columns="3"] .board{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+@media(max-width:760px){
+  main{padding:8px}
+  .board{grid-template-columns:1fr}
+  .ticket{padding:12px;border-radius:14px}
+  .ticket h3{font-size:calc(22px * var(--text-scale))}
+  .items{font-size:calc(18px * var(--text-scale))}
+  .actions button{min-height:54px}
+  .tables-grid{gap:7px}
+  .table-card{min-height:92px}
+  .table-card b{font-size:30px}
+  .modal-card{padding:16px}
+}
