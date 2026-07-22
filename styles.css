@@ -84,3 +84,10 @@ html[data-board-columns="3"] .board{grid-template-columns:repeat(3,minmax(0,1fr)
   .table-card b{font-size:30px}
   .modal-card{padding:16px}
 }
+
+/* V3.4: il tempo della portata parte quando diventa attiva; dopo 8 minuti l'intera comanda resta gialla fino a MANDATO. */
+.ticket.overdue-yellow{background:#facc15!important;border-top-color:#ca8a04!important;box-shadow:0 0 0 4px #a16207,0 8px 24px #0003!important;color:#111827}
+.ticket.overdue-yellow .meta{color:#422006}
+.ticket.overdue-yellow .kds-item{border-bottom-color:#a16207}
+.ticket.overdue-yellow .course-badge{background:#713f12}
+.course-timer{font-variant-numeric:tabular-nums;font-size:1.08em;font-weight:900}

@@ -141,12 +141,28 @@ function advanceCourseIfComplete(o,completedCourse,at){
   o.history.push({action:"course_advanced",fromCourse:completedCourse,toCourse:o.activeCourse,at});
 }
 const mins=t=>Math.max(0,Math.floor((Date.now()-new Date(t))/60000));
+const elapsedSeconds=t=>Math.max(0,Math.floor((Date.now()-new Date(t).getTime())/1000));
+const elapsedLabel=t=>{const total=elapsedSeconds(t),m=Math.floor(total/60),s=total%60;return `${m}:${String(s).padStart(2,"0")}`};
+function courseStartedAt(o,course,items=[]){
+  const advances=(o.history||[]).filter(h=>h.action==="course_advanced"&&Number(h.toCourse)===Number(course)&&h.at).sort((a,b)=>new Date(a.at)-new Date(b.at));
+  if(advances.length)return advances[advances.length-1].at;
+  const itemTimes=(items.length?items:o.items.filter(i=>Number(i.course)===Number(course))).map(i=>i.addedAt).filter(Boolean).sort((a,b)=>new Date(a)-new Date(b));
+  return itemTimes[0]||o.createdAt||new Date().toISOString();
+}
+function refreshBoardTimers(){
+  document.querySelectorAll(".ticket[data-timer-start]").forEach(card=>{
+    const start=card.dataset.timerStart;
+    const timer=card.querySelector("[data-ticket-timer]");
+    if(timer)timer.textContent=elapsedLabel(start);
+    card.classList.toggle("overdue-yellow",elapsedSeconds(start)>=480);
+  });
+}
 const clock=t=>t?new Date(t).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):"—";
 const duration=(a,b)=>{if(!a||!b)return "—";const m=Math.max(0,Math.round((new Date(b)-new Date(a))/60000));return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`};
 function sentEvents(o){return (o.history||[]).filter(h=>h.action==="sent").sort((a,b)=>new Date(a.at)-new Date(b.at))}
 function courseTimeline(o){const events=sentEvents(o),courses=[...new Set(o.items.map(i=>i.course))].sort((a,b)=>a-b);return courses.map(c=>{const ev=events.filter(h=>Number(h.course)===c);const at=ev.length?ev[ev.length-1].at:null;const depts=[...new Set(ev.map(h=>h.dept))];return{course:c,at,depts}})}
 
-function renderBoards(){for(const d of["cucina","pizzeria","bar"]){const rows=orders.filter(o=>o.paymentStatus==="open").map(o=>({o,it:deptItems(o,d)})).filter(x=>x.it.length);$("#count-"+d).textContent=rows.length+" tavoli";$("#board-"+d).innerHTML=rows.length?rows.map(({o,it})=>{const c=it[0].course,ready=it.every(i=>i.status==="ready"),started=it.some(i=>i.status==="started"),m=mins(Math.min(...it.map(i=>new Date(i.addedAt||o.createdAt).getTime())));return`<article class="ticket ${ready?"ready":started?"waiting":""} ${m>=18?"late":""}"><h3>TAVOLO ${esc(o.table)} <small class="covers-inline">${o.covers||0} COPERTI</small></h3><div class="course-badge">${courseLabel(c)}</div><div class="meta"><span>${d.toUpperCase()}</span><span>${m} min</span></div><div class="items">${it.map(i=>`<div class="kds-item"><b>${i.qty}×</b> ${esc(i.name)}${itemDetails(i)}</div>`).join("")}</div><div class="actions"><button class="start" data-a="start" data-o="${o.id}" data-d="${d}">INIZIA</button><button class="readybtn" data-a="ready" data-o="${o.id}" data-d="${d}">PRONTO</button><button class="sentbtn" data-a="sent" data-o="${o.id}" data-d="${d}">MANDATO</button></div></article>`}).join(""):`<div class="empty">Nessuna comanda</div>`}document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>act(b.dataset.o,b.dataset.d,b.dataset.a))}
+function renderBoards(){for(const d of["cucina","pizzeria","bar"]){const rows=orders.filter(o=>o.paymentStatus==="open").map(o=>({o,it:deptItems(o,d)})).filter(x=>x.it.length);$("#count-"+d).textContent=rows.length+" tavoli";$("#board-"+d).innerHTML=rows.length?rows.map(({o,it})=>{const c=it[0].course,ready=it.every(i=>i.status==="ready"),started=it.some(i=>i.status==="started"),timerStart=courseStartedAt(o,c,it),overdue=elapsedSeconds(timerStart)>=480;return`<article class="ticket ${ready?"ready":started?"waiting":""} ${overdue?"overdue-yellow":""}" data-timer-start="${esc(timerStart)}"><h3>TAVOLO ${esc(o.table)} <small class="covers-inline">${o.covers||0} COPERTI</small></h3><div class="course-badge">${courseLabel(c)}</div><div class="meta"><span>${d.toUpperCase()}</span><span class="course-timer" data-ticket-timer>${elapsedLabel(timerStart)}</span></div><div class="items">${it.map(i=>`<div class="kds-item"><b>${i.qty}×</b> ${esc(i.name)}${itemDetails(i)}</div>`).join("")}</div><div class="actions"><button class="start" data-a="start" data-o="${o.id}" data-d="${d}">INIZIA</button><button class="readybtn" data-a="ready" data-o="${o.id}" data-d="${d}">PRONTO</button><button class="sentbtn" data-a="sent" data-o="${o.id}" data-d="${d}">MANDATO</button></div></article>`}).join(""):`<div class="empty">Nessuna comanda</div>`}document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>act(b.dataset.o,b.dataset.d,b.dataset.a));refreshBoardTimers()}
 async function act(id,d,a){
   const o=orders.find(x=>x.id===id);
   if(!o)return;
@@ -202,6 +218,6 @@ $("#testSound").onclick=()=>{stopAlert();playAlertCycle($("#soundType").value,{p
 $("#saveSound").onclick=()=>{soundPrefs={enabled:$("#soundEnabled").checked,dept:$("#soundDept").value,soundType:$("#soundType").value,ackOnTap:$("#ackOnTap").checked};localStorage.setItem(SOUND_KEY,JSON.stringify(soundPrefs));ensureAudio();soundSnapshot=audibleLineIds();refreshSoundButton();closeModal("#soundModal");stopAlert();if(soundPrefs.enabled){playAlertCycle(soundPrefs.soundType,{preview:true});toast(soundPrefs.ackOnTap?"Suoni attivi: si ripetono finché tocchi lo schermo":"Avvisi sonori attivati") }else toast("Avvisi sonori disattivati")};
 document.addEventListener("pointerdown",()=>{if(soundPrefs.ackOnTap&&pendingVisualAlert)stopAlert()},{capture:true});
 refreshSoundButton();
-if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});if(cloud){$("#conn").textContent="ONLINE";$("#conn").className="pill online";cloudLoad();sb.channel("kds-live-v30").on("postgres_changes",{event:"*",schema:"public",table:"kds_orders"},cloudLoad).subscribe()}else{load();renderAll();checkSoundAlerts({initial:true})}menu();renderCourseRail();renderCart();setInterval(renderAll,30000);
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});if(cloud){$("#conn").textContent="ONLINE";$("#conn").className="pill online";cloudLoad();sb.channel("kds-live-v34").on("postgres_changes",{event:"*",schema:"public",table:"kds_orders"},cloudLoad).subscribe()}else{load();renderAll();checkSoundAlerts({initial:true})}menu();renderCourseRail();renderCart();setInterval(refreshBoardTimers,1000);setInterval(renderAll,30000);
 
 applyDisplayScale();loadCustomSound();
