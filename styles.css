@@ -129,3 +129,81 @@ html[data-board-columns="3"] .board{grid-template-columns:repeat(3,minmax(0,1fr)
   .sumup-item-modal{height:100dvh;max-height:100dvh;border-radius:0!important}.sumup-modal-body{padding-bottom:78px}.modal-course-row{gap:8px}.modifier-mode{width:100%}.modifier-mode button{flex:1}.sumup-modifier-grid{grid-template-columns:1fr}.sumup-modifier-grid button{min-height:58px}.comment-box textarea{min-height:100px}
 }
 @media(max-width:390px){.menu-grid{grid-template-columns:1fr 1fr}.product{height:78px!important;min-height:78px!important}.pos-categories{flex-basis:72px}.pos-home,.pos-category{height:58px;min-height:58px}}
+
+/* V5.1 - proporzioni uniformi, categorie leggibili e unico tasto INVIA */
+body.order-view{overflow:hidden}
+body.order-view main{padding:0}
+#ordine.view.active{height:calc(100dvh - 102px);overflow:hidden}
+#ordine .pos-shell{
+  width:100%;height:100%;min-height:0;
+  grid-template-columns:minmax(108px,12.5fr) minmax(0,58fr) minmax(230px,29.5fr);
+  overflow:hidden;
+}
+#ordine .pos-categories{min-width:0;padding:clamp(5px,.65vw,10px);}
+#ordine .pos-home,#ordine .pos-category{
+  min-height:clamp(68px,9.1vh,92px);
+  padding:clamp(5px,.6vw,9px) 4px;
+  gap:clamp(3px,.45vh,6px);
+}
+#ordine .cat-icon{
+  width:clamp(32px,3.65vw,50px);height:clamp(32px,3.65vw,50px);
+  font-size:clamp(12px,1.25vw,18px);
+  flex:0 0 auto;
+}
+#ordine .pos-category>span:last-child,#ordine .pos-home>span{
+  display:block!important;width:100%;max-width:100%;min-height:2.35em;
+  font-size:clamp(10px,1.02vw,14px)!important;line-height:1.12!important;
+  text-align:center!important;white-space:normal!important;overflow:visible!important;
+  word-break:normal;overflow-wrap:anywhere;color:#253140;font-weight:750;
+}
+#ordine .pos-category.active>span:last-child{color:#111827}
+#ordine .category-list{max-height:none;height:calc(100% - 122px);gap:clamp(4px,.55vh,8px);overflow-y:auto;overflow-x:hidden}
+#ordine .pos-products{padding:clamp(7px,1.15vw,18px) clamp(7px,1.15vw,18px) 6px;overflow:hidden}
+#ordine .pos-topline{margin-bottom:clamp(6px,.8vw,12px)}
+#ordine .menu-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(6px,.9vw,14px);min-height:0;overflow:auto}
+#ordine .product{height:clamp(70px,13.4vh,118px)!important;min-height:clamp(70px,13.4vh,118px)!important;padding:clamp(7px,1vw,14px)!important}
+#ordine .product span{font-size:clamp(11px,1.32vw,18px)!important}
+#ordine .product b{font-size:clamp(10px,1.1vw,15px)!important;right:clamp(6px,.7vw,10px);bottom:clamp(5px,.6vw,8px)}
+#ordine .pos-order{height:100%;overflow:hidden}
+#ordine .order-title{padding:clamp(8px,1vw,14px) clamp(8px,.9vw,12px)}
+#ordine .order-title strong{font-size:clamp(13px,1.4vw,19px)}
+#ordine .order-title small{font-size:clamp(11px,1.1vw,15px)}
+#ordine .course-head{font-size:clamp(10px,.95vw,13px);padding:clamp(6px,.75vw,10px) clamp(7px,.9vw,12px) 4px}
+#ordine .course-tabs{padding:0 clamp(6px,.8vw,10px) clamp(6px,.8vw,10px)}
+#ordine .course-tabs .course-button{font-size:clamp(10px,.9vw,13px);padding:clamp(5px,.55vw,7px) clamp(7px,.75vw,10px)}
+#ordine .pos-cart .line{padding:clamp(7px,.8vw,11px) clamp(7px,.9vw,12px)}
+#ordine .pos-cart .line strong{font-size:clamp(11px,1.15vw,16px)}
+#ordine .pos-total{padding:clamp(8px,.95vw,14px) clamp(8px,.9vw,12px);font-size:clamp(14px,1.45vw,20px)}
+#ordine .pos-bottom-actions.single-send{display:block;border-top:1px solid #dfe5ec}
+#ordine .pos-bottom-actions.single-send button{
+  width:100%;background:#65bd2b;color:#fff!important;border:0!important;
+  padding:clamp(14px,1.7vw,24px) 8px;font-size:clamp(16px,1.55vw,22px);font-weight:900;
+}
+#ordine .mobile-cart-toggle,#ordine .mobile-cart-close{display:none!important}
+
+/* Mantiene la stessa struttura proporzionale anche su telefono e tablet. */
+@media(max-width:760px){
+  body.order-view header{padding:5px 7px;min-height:70px;display:flex;flex-direction:row;align-items:center}
+  body.order-view header>div{width:auto;min-width:150px}body.order-view header h1{font-size:12px;margin:0 0 2px}
+  body.order-view header .pill,body.order-view header .sound-button,body.order-view header .display-button{font-size:8px;padding:4px 5px}
+  body.order-view nav{flex:1;width:auto;overflow-x:auto;gap:3px}body.order-view nav button{padding:7px 8px;font-size:9px}
+  #ordine.view.active{height:calc(100dvh - 70px)}
+  #ordine .pos-shell{display:grid;grid-template-columns:minmax(72px,12.5fr) minmax(0,58fr) minmax(128px,29.5fr);height:100%;min-height:0}
+  #ordine .pos-categories{display:block;grid-column:auto;grid-row:auto;order:initial;width:auto;overflow-y:auto;overflow-x:hidden;border-right:1px solid #dbe2ea;border-bottom:0;padding:4px;flex:none}
+  #ordine .pos-home,#ordine .pos-category{display:flex;width:100%;min-width:0;height:auto;min-height:clamp(52px,9.1vh,74px);flex:none;padding:3px 2px}
+  #ordine .cat-icon{width:clamp(25px,6.8vw,34px);height:clamp(25px,6.8vw,34px);font-size:clamp(9px,2.7vw,13px)}
+  #ordine .pos-category>span:last-child,#ordine .pos-home>span{font-size:clamp(7px,1.85vw,10px)!important;min-height:2.25em}
+  #ordine .category-list{display:flex;flex-direction:column;height:calc(100% - 78px);overflow-y:auto;overflow-x:hidden;padding:0;gap:3px;position:static}
+  #ordine .pos-products{display:flex;order:initial;grid-column:auto;padding:5px;min-width:0;min-height:0}
+  #ordine .pos-topline{display:flex;gap:4px;margin-bottom:4px}.product-toolbar input{padding:6px;font-size:9px}.product-toolbar .secondary{display:none}.selected-table{display:none}
+  #ordine .menu-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;max-height:none;overflow:auto}
+  #ordine .product{height:clamp(54px,13.4vh,82px)!important;min-height:clamp(54px,13.4vh,82px)!important;padding:4px!important}
+  #ordine .product span{font-size:clamp(8px,2.2vw,12px)!important}#ordine .product b{font-size:clamp(7px,1.8vw,10px)!important;right:4px;bottom:3px}
+  #ordine .product-pager{height:16px;flex:0 0 16px}.pager-dot{width:6px;height:6px}
+  #ordine .pos-order{display:flex!important;position:static;grid-column:auto;inset:auto;border-radius:0;box-shadow:none;max-height:none;height:100%;overflow:hidden;border-left:1px solid #d7dee8;border-top:0}
+  #ordine .order-title{padding:5px}.round-icon{display:block;font-size:14px}#ordine .order-title strong{font-size:10px}#ordine .order-title small{font-size:8px;margin-top:2px}
+  #ordine .course-head{padding:4px 5px 2px;font-size:7px}.link-button{font-size:7px;padding:2px}#ordine .course-tabs{padding:0 4px 4px;gap:2px}#ordine .course-tabs .course-button{font-size:7px;padding:3px 4px}
+  #ordine .pos-cart{max-height:none;flex:1;overflow:auto}#ordine .pos-cart .line{padding:5px 4px;gap:3px}#ordine .pos-cart .line strong{font-size:8px}#ordine .pos-cart .qty{gap:2px}#ordine .pos-cart .qty button{width:20px;height:20px;min-height:20px;font-size:9px}#ordine .remove{padding:4px;font-size:8px}
+  #ordine .empty.small{padding:8px;font-size:8px;margin-top:4px}
+  #ordine .pos-total{padding:6px 5px;font-size:10px}#ordine .pos-bottom-actions.single-send button{padding:10px 3px;font-size:11px}
+}

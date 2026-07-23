@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#111827"><title>DuePuntoZero KDS V4.2</title><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#111827"><title>DuePuntoZero KDS V5.1</title><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body><header><div><h1>DuePuntoZero KDS</h1><div id="conn" class="pill offline">DEMO LOCALE</div><button id="soundButton" class="sound-button">🔔 ATTIVA SUONI</button><button id="displayButton" class="display-button">Aa DISPLAY</button></div><nav id="tabs"><button data-view="tavoli" class="active">Tavoli</button><button data-view="ordine">Comanda</button><button data-view="conti">Conti aperti</button><button data-view="storico">Ordini pagati</button><button data-view="cucina">Cucina</button><button data-view="pizzeria">Pizzeria</button><button data-view="bar">Bar</button></nav></header>
 <main>
 <section id="tavoli" class="view active"><div class="screen-title"><div><h2>SELEZIONA TAVOLO</h2><p>Tocca un tavolo per aprire o continuare la comanda.</p></div><div class="table-actions"><span id="tablesSummary"></span><button id="openMenuManager" class="secondary compact">☰ GESTISCI MENÙ</button><button id="openSettings" class="secondary compact">⚙️ TAVOLI</button></div></div><div id="tablesGrid" class="tables-grid"></div></section>
@@ -23,7 +23,7 @@
       <div class="course-selector"><div class="course-head"><span>USCITA</span><button id="addCourse" class="link-button">⊕ AGGIUNGI UN ORDINE</button></div><div id="courseRail" class="course-tabs"></div></div>
       <div id="cartList" class="pos-cart"></div><div id="cartEmpty" class="empty small">Tocca un prodotto per aggiungerlo.</div>
       <div class="pos-total"><span>Totale</span><strong id="cartTotal">€ 0,00</strong></div>
-      <div class="pos-bottom-actions"><button id="goAccounts">Pagare</button><button id="sendOrder">Inviare</button></div>
+      <div class="pos-bottom-actions single-send"><button id="sendOrder">INVIA COMANDA</button></div>
     </aside>
   </div>
 </section>
