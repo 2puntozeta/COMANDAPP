@@ -47,6 +47,26 @@ const lineUnitTotal=item=>Number(item.price||0)+addOnTotal(item);
 
 let orders=[],cart=[],activeCat=categoryOrder[0]||"Tutti",selectedTable=null,selectedCourse=0,courseCount=3,editingLine=null,selectedAdds=[],selectedRemoves=[],pendingTable=null,editingCoversOnly=false,managerCat="Tutti",menuPage=0,modifierMode="add";
 const $=s=>document.querySelector(s),uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random(),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),courseLabel=n=>n===0?"ADESSO":`ORDINE ${n}`,money=n=>new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(Number(n||0));
+
+function isStandardKitchenMenu(item){
+  const name=String(item?.name||"").toLowerCase();
+  const cat=String(item?.cat||"").toLowerCase();
+  const menuWord=name.includes("menù")||name.includes("menu");
+  const menuCategory=cat.includes("menù")||cat.includes("menu");
+  return item?.dept==="cucina"&&(menuWord||menuCategory)&&!/(baby|giropizza|supplemento)/i.test(name);
+}
+function standardMenuParts(item,qty,baseCourse,adds,removes,note){
+  const bundleId=uid(),sourceMenu=item.name;
+  return [
+    {label:"Antipasto (Menù)",course:baseCourse,price:Number(item.price||0),part:"antipasto"},
+    {label:"Primo 1 (Menù)",course:baseCourse+1,price:0,part:"primo1"},
+    {label:"Primo 2 (Menù)",course:baseCourse+1,price:0,part:"primo2"},
+    {label:"Secondo (Menù)",course:baseCourse+2,price:0,part:"secondo"}
+  ].map((x,index)=>({
+    ...item,id:`${item.id}-menu-${x.part}-${bundleId}`,lineId:uid(),name:x.label,dept:"cucina",qty,course:x.course,price:x.price,
+    adds:[...adds],removes:[...removes],note,menuBundleId:bundleId,menuSource:sourceMenu,menuPart:x.part,menuPriceCarrier:index===0
+  }));
+}
 function toast(t){const x=$("#toast");x.textContent=t;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),1800)}
 const SOUND_KEY="dpz_kds_sound_v2",DISPLAY_KEY="dpz_kds_display_v1";
 let soundPrefs=(()=>{try{return{enabled:false,dept:"cucina",soundType:"industrial",ackOnTap:false,...JSON.parse(localStorage.getItem(SOUND_KEY)||"{}")}}catch{return{enabled:false,dept:"cucina",soundType:"industrial",ackOnTap:false}}})();
@@ -152,8 +172,8 @@ function menu(){
   document.querySelectorAll("[data-prod]").forEach(b=>b.onclick=()=>openProduct(b.dataset.prod))
 }
 function renderCourseRail(){const counts=Array.from({length:courseCount},(_,c)=>cart.filter(i=>i.course===c).reduce((s,i)=>s+i.qty,0));$("#courseRail").innerHTML=counts.map((n,c)=>`<button class="course-button ${selectedCourse===c?"active":""}" data-course="${c}"><b>${courseLabel(c)}</b><span>${n?n+" prodotti":"seleziona"}</span></button>`).join("");document.querySelectorAll("[data-course]").forEach(b=>b.onclick=()=>{selectedCourse=+b.dataset.course;renderCourseRail();renderCart()})}
-function openProduct(id){const p=MENU.find(x=>String(x.id)===String(id));if(!p)return;editingLine={...p,lineId:uid(),qty:1,course:selectedCourse,adds:[],removes:[],note:"",_new:true};openItemModal()}
-function editProduct(id){editingLine=cart.find(i=>i.lineId===id);if(editingLine){editingLine._new=false;openItemModal()}}
+function openProduct(id){const p=MENU.find(x=>String(x.id)===String(id));if(!p)return;const course=isStandardKitchenMenu(p)?Math.max(1,selectedCourse):selectedCourse;if(isStandardKitchenMenu(p)){courseCount=Math.max(courseCount,course+3);renderCourseRail()}editingLine={...p,lineId:uid(),qty:1,course,adds:[],removes:[],note:"",_new:true};openItemModal()}
+function editProduct(id){editingLine=cart.find(i=>i.lineId===id);if(editingLine?.menuBundleId){toast("Per modificare il menù standard, eliminalo e inseriscilo di nuovo");return}if(editingLine){editingLine._new=false;openItemModal()}}
 function openItemModal(){selectedAdds=[...(editingLine.adds||[])];selectedRemoves=[...(editingLine.removes||[])];modifierMode="add";$("#modalTitle").textContent=editingLine.name;$("#modalPrice").textContent=editingLine.price?money(editingLine.price):"€ 0,00";$("#modalQty").value=editingLine.qty;$("#modalCourse").innerHTML=Array.from({length:courseCount},(_,c)=>`<option value="${c}" ${c===editingLine.course?"selected":""}>${courseLabel(c)}</option>`).join("");$("#modalAdds").value="";$("#modalRemoves").value="";$("#modalNote").value=editingLine.note||"";$("#modifierSearch").value="";renderModifierChips();$("#saveItem").textContent=editingLine._new?`Aggiungere ${editingLine.qty} ${editingLine.name}`:"Salvare modifiche";$("#itemModal").classList.add("open")}
 function closeModal(id){$(id).classList.remove("open")}
 const toggle=(a,v)=>a.includes(v)?a.filter(x=>x!==v):[...a,v];
@@ -177,9 +197,28 @@ function renderModifierChips(){
   document.querySelectorAll("[data-qadd]").forEach(b=>b.onclick=()=>{selectedAdds=toggle(selectedAdds,b.dataset.qadd);renderModifierChips()});
   document.querySelectorAll("[data-qremove]").forEach(b=>b.onclick=()=>{selectedRemoves=toggle(selectedRemoves,b.dataset.qremove);renderModifierChips()});
 }
-function saveModal(){const a=$("#modalAdds").value.split(",").map(x=>x.trim()).filter(Boolean),r=$("#modalRemoves").value.split(",").map(x=>x.trim()).filter(Boolean);editingLine.qty=Math.max(1,+$("#modalQty").value||1);editingLine.course=+$("#modalCourse").value;editingLine.adds=[...new Set([...selectedAdds,...a])];editingLine.removes=[...new Set([...selectedRemoves,...r])];editingLine.note=$("#modalNote").value.trim();delete editingLine._new;if(!cart.some(x=>x.lineId===editingLine.lineId))cart.push(editingLine);selectedCourse=editingLine.course;closeModal("#itemModal");renderCourseRail();renderCart()}
-function itemDetails(i){return`${i.adds.map(v=>`<div class="mod plus">+ ${esc(v)}${addOnPrice(v)>0?` <small>(${money(addOnPrice(v))})</small>`:""}</div>`).join("")}${i.removes.map(v=>`<div class="mod minus">− ${esc(v)}</div>`).join("")}${i.note?`<div class="mod note">📝 ${esc(i.note)}</div>`:""}`}
-function renderCart(){const rows=cart.filter(i=>i.course===selectedCourse);$("#cartEmpty").style.display=rows.length?"none":"block";$("#cartList").innerHTML=rows.map(i=>`<div class="line ${i.dept}" data-edit="${i.lineId}"><div><strong>${esc(i.name)}</strong>${i.price?`<small class="line-price">${money(i.price)} cad.</small>`:""}${itemDetails(i)}</div><div class="qty"><button data-dec="${i.lineId}">−</button><b>${i.qty}</b><button data-inc="${i.lineId}">+</button></div><button class="remove" data-del="${i.lineId}">×</button></div>`).join("");const total=cart.reduce((s,i)=>s+lineUnitTotal(i)*Number(i.qty||0),0);if($("#cartTotal"))$("#cartTotal").textContent=money(total);if($("#mobileCartCount"))$("#mobileCartCount").textContent=cart.reduce((s,i)=>s+Number(i.qty||0),0);document.querySelectorAll("[data-edit]").forEach(x=>x.onclick=e=>{if(!e.target.closest("button"))editProduct(x.dataset.edit)});["inc","dec","del"].forEach(a=>document.querySelectorAll(`[data-${a}]`).forEach(b=>b.onclick=()=>{const i=cart.find(x=>x.lineId===b.dataset[a]);if(a==="inc")i.qty++;if(a==="dec")i.qty--;if(a==="del"||i.qty<=0)cart=cart.filter(x=>x!==i);renderCourseRail();renderCart()}))}
+function saveModal(){
+  const a=$("#modalAdds").value.split(",").map(x=>x.trim()).filter(Boolean),r=$("#modalRemoves").value.split(",").map(x=>x.trim()).filter(Boolean);
+  const wasNew=editingLine._new===true;
+  editingLine.qty=Math.max(1,+$("#modalQty").value||1);
+  editingLine.course=+$("#modalCourse").value;
+  editingLine.adds=[...new Set([...selectedAdds,...a])];
+  editingLine.removes=[...new Set([...selectedRemoves,...r])];
+  editingLine.note=$("#modalNote").value.trim();
+  if(wasNew&&isStandardKitchenMenu(editingLine)){
+    const baseCourse=Math.max(1,editingLine.course);
+    courseCount=Math.max(courseCount,baseCourse+3);
+    cart.push(...standardMenuParts(editingLine,editingLine.qty,baseCourse,editingLine.adds,editingLine.removes,editingLine.note));
+    selectedCourse=baseCourse;
+  }else{
+    delete editingLine._new;
+    if(!cart.some(x=>x.lineId===editingLine.lineId))cart.push(editingLine);
+    selectedCourse=editingLine.course;
+  }
+  closeModal("#itemModal");renderCourseRail();renderCart();
+}
+function itemDetails(i){return`${i.menuSource?`<div class="mod note">MENÙ: ${esc(i.menuSource)}</div>`:""}${i.adds.map(v=>`<div class="mod plus">+ ${esc(v)}${addOnPrice(v)>0?` <small>(${money(addOnPrice(v))})</small>`:""}</div>`).join("")}${i.removes.map(v=>`<div class="mod minus">− ${esc(v)}</div>`).join("")}${i.note?`<div class="mod note">📝 ${esc(i.note)}</div>`:""}`}
+function renderCart(){const rows=cart.filter(i=>i.course===selectedCourse);$("#cartEmpty").style.display=rows.length?"none":"block";$("#cartList").innerHTML=rows.map(i=>`<div class="line ${i.dept}" data-edit="${i.lineId}"><div><strong>${esc(i.name)}</strong>${i.price?`<small class="line-price">${money(i.price)} cad.</small>`:""}${itemDetails(i)}</div><div class="qty"><button data-dec="${i.lineId}">−</button><b>${i.qty}</b><button data-inc="${i.lineId}">+</button></div><button class="remove" data-del="${i.lineId}">×</button></div>`).join("");const total=cart.reduce((s,i)=>s+lineUnitTotal(i)*Number(i.qty||0),0);if($("#cartTotal"))$("#cartTotal").textContent=money(total);if($("#mobileCartCount"))$("#mobileCartCount").textContent=cart.reduce((s,i)=>s+Number(i.qty||0),0);document.querySelectorAll("[data-edit]").forEach(x=>x.onclick=e=>{if(!e.target.closest("button"))editProduct(x.dataset.edit)});["inc","dec","del"].forEach(a=>document.querySelectorAll(`[data-${a}]`).forEach(b=>b.onclick=()=>{const i=cart.find(x=>x.lineId===b.dataset[a]);if(!i)return;const linked=i.menuBundleId?cart.filter(x=>x.menuBundleId===i.menuBundleId):[i];if(a==="inc")linked.forEach(x=>x.qty++);if(a==="dec")linked.forEach(x=>x.qty--);if(a==="del"||linked.some(x=>x.qty<=0))cart=cart.filter(x=>!linked.includes(x));renderCourseRail();renderCart()}))}
 async function send(){
   if(!selectedTable||!cart.length)return toast("Seleziona tavolo e prodotti");
   let o=openOrder(selectedTable);
