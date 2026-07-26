@@ -58,15 +58,32 @@ function isStandardKitchenMenu(item){
 function standardMenuParts(item,qty,baseCourse,adds,removes,note){
   const bundleId=uid(),sourceMenu=item.name;
   return [
-    {label:"Antipasto (Menù)",course:baseCourse,price:Number(item.price||0),part:"antipasto"},
-    {label:"Primo 1 (Menù)",course:baseCourse+1,price:0,part:"primo1"},
-    {label:"Primo 2 (Menù)",course:baseCourse+1,price:0,part:"primo2"},
-    {label:"Secondo (Menù)",course:baseCourse+2,price:0,part:"secondo"}
+    {label:"Antipasto",course:baseCourse,price:Number(item.price||0),part:"antipasto"},
+    {label:"Zuppetta di Mare",course:baseCourse,price:0,part:"zuppetta"},
+    {label:"Pepata di Cozze",course:baseCourse,price:0,part:"cozze"},
+    {label:"Primo A",course:baseCourse+1,price:0,part:"primoA"},
+    {label:"Primo B",course:baseCourse+1,price:0,part:"primoB"},
+    {label:"Frittura mista",course:baseCourse+2,price:0,part:"frittura"}
   ].map((x,index)=>({
     ...item,id:`${item.id}-menu-${x.part}-${bundleId}`,lineId:uid(),name:x.label,dept:"cucina",qty,course:x.course,price:x.price,
     adds:[...adds],removes:[...removes],note,menuBundleId:bundleId,menuSource:sourceMenu,menuPart:x.part,menuPriceCarrier:index===0
   }));
 }
+function isSingleSeaStarter(item){
+  return item?.dept==="cucina"&&String(item?.name||"").trim().toLowerCase()==="antipasto di mare";
+}
+function singleSeaStarterParts(item,qty,course,adds,removes,note){
+  const bundleId=uid();
+  return [
+    {label:"Antipasto",price:Number(item.price||0),part:"antipasto"},
+    {label:"Zuppetta di Mare",price:0,part:"zuppetta"},
+    {label:"Pepata di Cozze",price:0,part:"cozze"}
+  ].map((x,index)=>({
+    ...item,id:`${item.id}-starter-${x.part}-${bundleId}`,lineId:uid(),name:x.label,dept:"cucina",qty,course,price:x.price,
+    adds:[...adds],removes:[...removes],note,menuBundleId:bundleId,starterBundle:true,menuPriceCarrier:index===0
+  }));
+}
+function menuBadge(i){return i.menuSource?` <span class="menu-badge">MENÙ</span>`:""}
 function toast(t){const x=$("#toast");x.textContent=t;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),1800)}
 const SOUND_KEY="dpz_kds_sound_v2",DISPLAY_KEY="dpz_kds_display_v1";
 let soundPrefs=(()=>{try{return{enabled:false,dept:"cucina",soundType:"industrial",ackOnTap:false,...JSON.parse(localStorage.getItem(SOUND_KEY)||"{}")}}catch{return{enabled:false,dept:"cucina",soundType:"industrial",ackOnTap:false}}})();
@@ -210,6 +227,9 @@ function saveModal(){
     courseCount=Math.max(courseCount,baseCourse+3);
     cart.push(...standardMenuParts(editingLine,editingLine.qty,baseCourse,editingLine.adds,editingLine.removes,editingLine.note));
     selectedCourse=baseCourse;
+  }else if(wasNew&&isSingleSeaStarter(editingLine)){
+    cart.push(...singleSeaStarterParts(editingLine,editingLine.qty,editingLine.course,editingLine.adds,editingLine.removes,editingLine.note));
+    selectedCourse=editingLine.course;
   }else{
     delete editingLine._new;
     if(!cart.some(x=>x.lineId===editingLine.lineId))cart.push(editingLine);
@@ -217,8 +237,8 @@ function saveModal(){
   }
   closeModal("#itemModal");renderCourseRail();renderCart();
 }
-function itemDetails(i){return`${i.menuSource?`<div class="mod note">MENÙ: ${esc(i.menuSource)}</div>`:""}${i.adds.map(v=>`<div class="mod plus">+ ${esc(v)}${addOnPrice(v)>0?` <small>(${money(addOnPrice(v))})</small>`:""}</div>`).join("")}${i.removes.map(v=>`<div class="mod minus">− ${esc(v)}</div>`).join("")}${i.note?`<div class="mod note">📝 ${esc(i.note)}</div>`:""}`}
-function renderCart(){const rows=cart.filter(i=>i.course===selectedCourse);$("#cartEmpty").style.display=rows.length?"none":"block";$("#cartList").innerHTML=rows.map(i=>`<div class="line ${i.dept}" data-edit="${i.lineId}"><div><strong>${esc(i.name)}</strong>${i.price?`<small class="line-price">${money(i.price)} cad.</small>`:""}${itemDetails(i)}</div><div class="qty"><button data-dec="${i.lineId}">−</button><b>${i.qty}</b><button data-inc="${i.lineId}">+</button></div><button class="remove" data-del="${i.lineId}">×</button></div>`).join("");const total=cart.reduce((s,i)=>s+lineUnitTotal(i)*Number(i.qty||0),0);if($("#cartTotal"))$("#cartTotal").textContent=money(total);if($("#mobileCartCount"))$("#mobileCartCount").textContent=cart.reduce((s,i)=>s+Number(i.qty||0),0);document.querySelectorAll("[data-edit]").forEach(x=>x.onclick=e=>{if(!e.target.closest("button"))editProduct(x.dataset.edit)});["inc","dec","del"].forEach(a=>document.querySelectorAll(`[data-${a}]`).forEach(b=>b.onclick=()=>{const i=cart.find(x=>x.lineId===b.dataset[a]);if(!i)return;const linked=i.menuBundleId?cart.filter(x=>x.menuBundleId===i.menuBundleId):[i];if(a==="inc")linked.forEach(x=>x.qty++);if(a==="dec")linked.forEach(x=>x.qty--);if(a==="del"||linked.some(x=>x.qty<=0))cart=cart.filter(x=>!linked.includes(x));renderCourseRail();renderCart()}))}
+function itemDetails(i){return`${i.adds.map(v=>`<div class="mod plus">+ ${esc(v)}${addOnPrice(v)>0?` <small>(${money(addOnPrice(v))})</small>`:""}</div>`).join("")}${i.removes.map(v=>`<div class="mod minus">− ${esc(v)}</div>`).join("")}${i.note?`<div class="mod note">📝 ${esc(i.note)}</div>`:""}`}
+function renderCart(){const rows=cart.filter(i=>i.course===selectedCourse);$("#cartEmpty").style.display=rows.length?"none":"block";$("#cartList").innerHTML=rows.map(i=>`<div class="line ${i.dept}" data-edit="${i.lineId}"><div><strong>${esc(i.name)}${menuBadge(i)}</strong>${i.price?`<small class="line-price">${money(i.price)} cad.</small>`:""}${itemDetails(i)}</div><div class="qty"><button data-dec="${i.lineId}">−</button><b>${i.qty}</b><button data-inc="${i.lineId}">+</button></div><button class="remove" data-del="${i.lineId}">×</button></div>`).join("");const total=cart.reduce((s,i)=>s+lineUnitTotal(i)*Number(i.qty||0),0);if($("#cartTotal"))$("#cartTotal").textContent=money(total);if($("#mobileCartCount"))$("#mobileCartCount").textContent=cart.reduce((s,i)=>s+Number(i.qty||0),0);document.querySelectorAll("[data-edit]").forEach(x=>x.onclick=e=>{if(!e.target.closest("button"))editProduct(x.dataset.edit)});["inc","dec","del"].forEach(a=>document.querySelectorAll(`[data-${a}]`).forEach(b=>b.onclick=()=>{const i=cart.find(x=>x.lineId===b.dataset[a]);if(!i)return;const linked=i.menuBundleId?cart.filter(x=>x.menuBundleId===i.menuBundleId):[i];if(a==="inc")linked.forEach(x=>x.qty++);if(a==="dec")linked.forEach(x=>x.qty--);if(a==="del"||linked.some(x=>x.qty<=0))cart=cart.filter(x=>!linked.includes(x));renderCourseRail();renderCart()}))}
 async function send(){
   if(!selectedTable||!cart.length)return toast("Seleziona tavolo e prodotti");
   let o=openOrder(selectedTable);
@@ -275,7 +295,7 @@ const duration=(a,b)=>{if(!a||!b)return "—";const m=Math.max(0,Math.round((new
 function sentEvents(o){return (o.history||[]).filter(h=>h.action==="sent").sort((a,b)=>new Date(a.at)-new Date(b.at))}
 function courseTimeline(o){const events=sentEvents(o),courses=[...new Set(o.items.map(i=>i.course))].sort((a,b)=>a-b);return courses.map(c=>{const ev=events.filter(h=>Number(h.course)===c);const at=ev.length?ev[ev.length-1].at:null;const depts=[...new Set(ev.map(h=>h.dept))];return{course:c,at,depts}})}
 
-function renderBoards(){for(const d of["cucina","pizzeria","bar"]){const rows=orders.filter(o=>o.paymentStatus==="open").map(o=>({o,it:deptItems(o,d)})).filter(x=>x.it.length);$("#count-"+d).textContent=rows.length+" tavoli";$("#board-"+d).innerHTML=rows.length?rows.map(({o,it})=>{const c=it[0].course,timerStart=courseStartedAt(o,c,it),overdue=elapsedSeconds(timerStart)>=480;return`<article class="ticket ${overdue?"overdue-yellow":""}" data-timer-start="${esc(timerStart)}"><h3>TAVOLO ${esc(o.table)} <small class="covers-inline">${o.covers||0} COPERTI</small></h3><div class="course-badge">${courseLabel(c)}</div><div class="meta"><span>${d.toUpperCase()}</span><span class="course-timer" data-ticket-timer>${elapsedLabel(timerStart)}</span></div><div class="items">${it.map(i=>`<div class="kds-item"><b>${i.qty}×</b> ${esc(i.name)}${itemDetails(i)}</div>`).join("")}</div><div class="actions single-action"><button class="sentbtn" data-a="sent" data-o="${o.id}" data-d="${d}">MANDATO</button></div></article>`}).join(""):`<div class="empty">Nessuna comanda</div>`}document.querySelectorAll("[data-a=sent]").forEach(b=>b.onclick=()=>act(b.dataset.o,b.dataset.d,"sent"));refreshBoardTimers()}
+function renderBoards(){for(const d of["cucina","pizzeria","bar"]){const rows=orders.filter(o=>o.paymentStatus==="open").map(o=>({o,it:deptItems(o,d)})).filter(x=>x.it.length);$("#count-"+d).textContent=rows.length+" tavoli";$("#board-"+d).innerHTML=rows.length?rows.map(({o,it})=>{const c=it[0].course,timerStart=courseStartedAt(o,c,it),overdue=elapsedSeconds(timerStart)>=480;return`<article class="ticket ${overdue?"overdue-yellow":""}" data-timer-start="${esc(timerStart)}"><h3>TAVOLO ${esc(o.table)} <small class="covers-inline">${o.covers||0} COPERTI</small></h3><div class="course-badge">${courseLabel(c)}</div><div class="meta"><span>${d.toUpperCase()}</span><span class="course-timer" data-ticket-timer>${elapsedLabel(timerStart)}</span></div><div class="items">${it.map(i=>`<div class="kds-item"><b>${i.qty}×</b> ${esc(i.name)}${menuBadge(i)}${itemDetails(i)}</div>`).join("")}</div><div class="actions single-action"><button class="sentbtn" data-a="sent" data-o="${o.id}" data-d="${d}">MANDATO</button></div></article>`}).join(""):`<div class="empty">Nessuna comanda</div>`}document.querySelectorAll("[data-a=sent]").forEach(b=>b.onclick=()=>act(b.dataset.o,b.dataset.d,"sent"));refreshBoardTimers()}
 async function act(id,d,a){
   const o=orders.find(x=>x.id===id);
   if(!o)return;
@@ -288,7 +308,7 @@ async function act(id,d,a){
   await persist(o);renderAll();checkSoundAlerts()
 }
 function orderGroups(o){const max=Math.max(0,...o.items.map(i=>i.course));return Array.from({length:max+1},(_,c)=>({c,items:o.items.filter(i=>i.course===c)})).filter(g=>g.items.length)}
-function fullOrderHtml(o){const body=orderGroups(o).map(g=>`<section class="full-group"><h3>${courseLabel(g.c)}</h3>${g.items.map(i=>`<div class="full-line"><div><b>${i.qty}× ${esc(i.name)}</b>${itemDetails(i)}</div><small>${lineUnitTotal(i)?money(lineUnitTotal(i)*Number(i.qty)):""}<br>${i.dept.toUpperCase()} · ${i.status==="sent"?"Mandato":i.status==="ready"?"Pronto":i.status==="started"?"In preparazione":"In attesa"}</small></div>`).join("")}</section>`).join("");const total=o.items.reduce((s,i)=>s+lineUnitTotal(i)*Number(i.qty||0),0);return body+`<div class="order-grand-total"><span>TOTALE</span><b>${money(total)}</b></div>`}
+function fullOrderHtml(o){const body=orderGroups(o).map(g=>`<section class="full-group"><h3>${courseLabel(g.c)}</h3>${g.items.map(i=>`<div class="full-line"><div><b>${i.qty}× ${esc(i.name)}${menuBadge(i)}</b>${itemDetails(i)}</div><small>${lineUnitTotal(i)?money(lineUnitTotal(i)*Number(i.qty)):""}<br>${i.dept.toUpperCase()} · ${i.status==="sent"?"Mandato":i.status==="ready"?"Pronto":i.status==="started"?"In preparazione":"In attesa"}</small></div>`).join("")}</section>`).join("");const total=o.items.reduce((s,i)=>s+lineUnitTotal(i)*Number(i.qty||0),0);return body+`<div class="order-grand-total"><span>TOTALE</span><b>${money(total)}</b></div>`}
 function openFull(table){const o=openOrder(table);if(!o)return toast("Tavolo senza conto aperto");$("#fullTitle").textContent=`TAVOLO ${table} — ${o.covers||0} COPERTI — ORDINE COMPLETO`;$("#fullBody").innerHTML=fullOrderHtml(o);$("#fullModal").classList.add("open")}
 function renderAccounts(){const open=orders.filter(o=>o.paymentStatus==="open");$("#count-conti").textContent=open.length+" tavoli";$("#board-conti").innerHTML=open.length?open.map(o=>`<article class="account"><div class="account-head"><div><h3>TAVOLO ${esc(o.table)}</h3><small>${o.covers||0} coperti · Aperto ${new Date(o.createdAt).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}</small></div><span class="status ${o.items.every(i=>i.status==="sent")?"done":"open"}">${o.items.every(i=>i.status==="sent")?"COMPLETO":"IN LAVORAZIONE"}</span></div>${fullOrderHtml(o)}<div class="account-actions"><button data-addtable="${esc(o.table)}" class="secondary">AGGIUNGI PRODOTTI</button><button data-paid="${o.id}" class="primary">SEGNA PAGATO</button></div></article>`).join(""):`<div class="empty">Nessun conto aperto</div>`;document.querySelectorAll("[data-addtable]").forEach(b=>b.onclick=()=>openTable(b.dataset.addtable));document.querySelectorAll("[data-paid]").forEach(b=>b.onclick=()=>markPaid(b.dataset.paid))}
 async function markPaid(id){const o=orders.find(x=>x.id===id);if(!confirm(`Segnare come pagato il tavolo ${o.table}?`))return;o.paymentStatus="paid";o.paidAt=new Date().toISOString();o.history.push({action:"paid",at:o.paidAt});await persist(o);renderAll();toast("Tavolo chiuso")}

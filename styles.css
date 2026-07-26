@@ -207,3 +207,5 @@ body.order-view main{padding:0}
   #ordine .empty.small{padding:8px;font-size:8px;margin-top:4px}
   #ordine .pos-total{padding:6px 5px;font-size:10px}#ordine .pos-bottom-actions.single-send button{padding:10px 3px;font-size:11px}
 }
+
+.menu-badge{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:999px;background:#2563eb;color:#fff;font-size:.68em;font-weight:900;letter-spacing:.03em;vertical-align:middle;white-space:nowrap}.kds-item .menu-badge{font-size:.62em;margin-left:7px}.full-line .menu-badge{font-size:.65em}
